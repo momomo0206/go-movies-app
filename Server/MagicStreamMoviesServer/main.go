@@ -4,7 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"strings"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/momomo0206/go-movies-app/Server/MagicStreamMoviesServer/database"
@@ -23,6 +27,31 @@ func main() {
 	if err != nil {
 		log.Println("Warning: unable to find .env file")
 	}
+
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+
+	var origins []string
+	if allowedOrigins != "" {
+		origins = strings.Split(allowedOrigins, ",")
+		for i := range origins {
+			origins[i] = strings.TrimSpace(origins[i])
+			log.Println("Allowed Origin:", origins[i])
+		}
+	} else {
+		origins = []string{"http://localhost:5173"}
+		log.Println("Allowed Origin: http://localhost:5173")
+	}
+
+	config := cors.Config{}
+	// config.AllowAllOrigins = true
+	config.AllowOrigins = []string{"http://localhost:5173"}
+	config.AllowMethods = []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Accept"}
+	config.AllowCredentials = true
+	config.ExposeHeaders = []string{"Content-Length"}
+	config.MaxAge = 12 * time.Hour
+
+	router.Use(cors.New(config))
 
 	var client *mongo.Client = database.Connect()
 

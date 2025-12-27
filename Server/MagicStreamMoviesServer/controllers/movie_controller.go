@@ -362,3 +362,28 @@ func GetUsersFavouriteGenres(userId string, client *mongo.Client, c *gin.Context
 
 	return genreNames, nil
 }
+
+func GetGenres(client *mongo.Client) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		var genreCollection *mongo.Collection = database.OpenCollection("genres", client)
+
+		cursor, err := genreCollection.Find(ctx, bson.D{})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch genres"})
+			return
+		}
+
+		defer cursor.Close(ctx)
+
+		var genres []models.Genre
+		if err := cursor.All(ctx, &genres); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, genres)
+	}
+}
